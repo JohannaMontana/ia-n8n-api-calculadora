@@ -1,4 +1,5 @@
 const API_URL = 'https://hannamontana.app.n8n.cloud/webhook-test/calculadora-n8n';
+const API_BASE = 'http://100.30.101.150:5000/api/calculate';
 
 // Función para llenar ejemplos en el input
 function fillExample(example) {
