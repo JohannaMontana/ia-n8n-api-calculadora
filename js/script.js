@@ -1,4 +1,4 @@
-const API_URL = 'http://localhost:5000/api/calculate'; // Cambia por tu URL de AWS
+const API_URL = 'http://100.30.101.150:5000/api/calculate';
 
 // Función para llenar ejemplos en el input
 function fillExample(example) {
