@@ -1,4 +1,5 @@
 const API_URL = 'http://100.30.101.150:5000/api/calculate';
+const API_BASE = 'http://100.30.101.150:5000';
 
 // Función para llenar ejemplos en el input
 function fillExample(example) {
@@ -77,6 +78,8 @@ class CalculatorApp {
             
             if (data.success) {
                 this.showSuccess(data, expression);
+                // Actualizar el dashboard después de un cálculo exitoso
+                setTimeout(() => dashboard.loadAllData(), 1000);
             } else {
                 this.showError(data.error);
             }
@@ -131,9 +134,145 @@ class CalculatorApp {
     }
 }
 
-// Inicializar la aplicación cuando el DOM esté listo
+class Dashboard {
+    constructor() {
+        this.init();
+    }
+
+    init() {
+        this.loadAllData();
+        // Actualizar cada 30 segundos
+        setInterval(() => this.loadAllData(), 30000);
+    }
+
+    async fetchAPI(endpoint) {
+        try {
+            const response = await fetch(`${API_BASE}${endpoint}`);
+            if (!response.ok) throw new Error('Error en la API');
+            return await response.json();
+        } catch (error) {
+            console.error(`Error fetching ${endpoint}:`, error);
+            return null;
+        }
+    }
+
+    async loadAllData() {
+        await Promise.all([
+            this.loadStats(),
+            this.loadLatestOperation(),
+            this.loadRecentOperations()
+        ]);
+    }
+
+    async loadStats() {
+        const data = await this.fetchAPI('/api/stats');
+        const statsContent = document.getElementById('statsContent');
+        
+        if (data && data.success) {
+            const stats = data.stats;
+            statsContent.innerHTML = `
+                <div class="text-center">
+                    <div class="stats-number">${stats.total_operaciones || 0}</div>
+                    <div class="stats-label">Operaciones Totales</div>
+                    
+                    <div class="mt-3">
+                        <div class="stats-number">${stats.usuarios_unicos || 0}</div>
+                        <div class="stats-label">Usuarios Únicos</div>
+                    </div>
+                    
+                    <div class="mt-2">
+                        <small class="text-light opacity-75">
+                            <i class="fas fa-sync-alt me-1"></i>
+                            Actualizado ahora
+                        </small>
+                    </div>
+                </div>
+            `;
+        } else {
+            statsContent.innerHTML = '<div class="text-center text-muted">Error cargando estadísticas</div>';
+        }
+    }
+
+    async loadLatestOperation() {
+        const data = await this.fetchAPI('/api/operations/latest');
+        const latestOperation = document.getElementById('latestOperation');
+        
+        if (data && data.success && data.operation) {
+            const op = data.operation;
+            const fecha = new Date(op.fecha_hora);
+            const ahora = new Date();
+            const diffMinutos = Math.floor((ahora - fecha) / (1000 * 60));
+            
+            let tiempoTexto = 'Hace un momento';
+            if (diffMinutos > 0) {
+                tiempoTexto = `Hace ${diffMinutos} minuto${diffMinutos > 1 ? 's' : ''}`;
+            }
+            
+            latestOperation.innerHTML = `
+                <div class="operation-item">
+                    <div class="operation-expression">${op.operacion}</div>
+                    <div class="operation-result">= ${op.resultado}</div>
+                    <div class="operation-location">
+                        <i class="fas fa-map-marker-alt me-1"></i>
+                        ${op.ciudad || 'Desconocida'}, ${op.pais || 'Desconocido'}
+                    </div>
+                    <div class="operation-location">
+                        <i class="fas fa-clock me-1"></i>
+                        ${tiempoTexto}
+                    </div>
+                </div>
+            `;
+        } else {
+            latestOperation.innerHTML = `
+                <div class="empty-state">
+                    <i class="fas fa-calculator"></i>
+                    <p>No hay operaciones recientes</p>
+                </div>
+            `;
+        }
+    }
+
+    async loadRecentOperations() {
+        const data = await this.fetchAPI('/api/operations/recent');
+        const recentOperations = document.getElementById('recentOperations');
+        
+        if (data && data.success && data.operations.length > 0) {
+            let html = '';
+            data.operations.forEach(op => {
+                const fecha = new Date(op.fecha_hora);
+                html += `
+                    <div class="operation-item">
+                        <div class="operation-expression">${op.operacion}</div>
+                        <div class="operation-result">= ${op.resultado}</div>
+                        <div class="operation-location">
+                            <i class="fas fa-map-marker-alt me-1"></i>
+                            ${op.ciudad || 'Desconocida'}, ${op.pais || 'Desconocido'} 
+                            <span class="ms-2">
+                                <i class="fas fa-clock me-1"></i>
+                                ${fecha.toLocaleString()}
+                            </span>
+                        </div>
+                    </div>
+                `;
+            });
+            recentOperations.innerHTML = html;
+        } else {
+            recentOperations.innerHTML = `
+                <div class="empty-state">
+                    <i class="fas fa-history"></i>
+                    <p>No hay operaciones recientes</p>
+                    <small>Realiza tu primer cálculo para verlo aquí</small>
+                </div>
+            `;
+        }
+    }
+}
+
+// Inicializar ambas aplicaciones cuando el DOM esté listo
+let dashboard;
 document.addEventListener('DOMContentLoaded', () => {
     new CalculatorApp();
+    dashboard = new Dashboard();
 });
 
 // Agregar animación de shake
