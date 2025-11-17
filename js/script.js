@@ -1,5 +1,13 @@
+// DIAGNÓSTICO - Verificar que el script se carga
+console.log("✅ script.js cargado correctamente");
+
+// CONFIGURACIÓN
 const API_URL = 'https://hannamontana.app.n8n.cloud/webhook-test/calculadora-n8n';
 const API_BASE = 'http://100.30.101.150:5000';
+
+console.log("🔧 Configuración API:");
+console.log("   API_BASE:", API_BASE);
+console.log("   API_URL:", API_URL);
 
 // Función para llenar ejemplos en el input
 function fillExample(example) {
@@ -29,12 +37,19 @@ function fillExample(example) {
 
 class CalculatorApp {
     constructor() {
+        console.log("🔄 Inicializando CalculatorApp...");
         this.form = document.getElementById('calculatorForm');
         this.resultDiv = document.getElementById('result');
         this.errorDiv = document.getElementById('error');
         this.loadingDiv = document.getElementById('loading');
         
+        if (!this.form) {
+            console.error("❌ NO SE ENCUENTRA EL FORMULARIO calculatorForm");
+            return;
+        }
+        
         this.initEvents();
+        console.log("✅ CalculatorApp inicializada correctamente");
     }
     
     initEvents() {
@@ -52,59 +67,79 @@ class CalculatorApp {
         });
     }
     
-   async handleSubmit(e) {
-    e.preventDefault();
-    
-    const expression = document.getElementById('expression').value.trim();
-    
-    // Ocultar mensajes anteriores
-    this.hideAllMessages();
-    
-    // Mostrar loading
-    this.showLoading();
-    
-    try {
-        console.log("Enviando expresión:", expression);
-        const response = await fetch(API_URL, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ expression: expression })
-        });
+    async handleSubmit(e) {
+        e.preventDefault();
+        console.log("🔄 handleSubmit ejecutado");
         
-        console.log("Response status:", response.status);
-        const data = await response.json();
-        console.log("Datos recibidos:", data);
+        const expression = document.getElementById('expression').value.trim();
+        console.log("📝 Expresión:", expression);
         
-        this.hideLoading();
-        
-        if (data.success) {
-            this.showSuccess(data, expression);
-            // Actualizar el dashboard después de un cálculo exitoso
-            setTimeout(() => {
-                console.log("Actualizando dashboard...");
-                dashboard.loadAllData();
-            }, 1000);
-        } else {
-            console.error("Error del servidor:", data.error);
-            this.showError(data.error || "Error desconocido");
+        if (!expression) {
+            this.showError("Por favor ingresa una expresión");
+            return;
         }
         
-    } catch (error) {
-        this.hideLoading();
-        console.error("Error de conexión:", error);
-        this.showError(`Error de conexión: ${error.message}`);
+        // Ocultar mensajes anteriores
+        this.hideAllMessages();
+        
+        // Mostrar loading
+        this.showLoading();
+        
+        try {
+            console.log("📤 Enviando expresión a n8n...");
+            const response = await fetch(API_URL, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ expression: expression })
+            });
+            
+            console.log("📥 Response status:", response.status);
+            
+            if (!response.ok) {
+                throw new Error(`Error HTTP: ${response.status}`);
+            }
+            
+            const data = await response.json();
+            console.log("✅ Datos recibidos de n8n:", data);
+            
+            this.hideLoading();
+            
+            if (data.success) {
+                console.log("🎉 Cálculo exitoso");
+                this.showSuccess(data, expression);
+                
+                // Actualizar el dashboard después de un cálculo exitoso
+                setTimeout(() => {
+                    console.log("🔄 Actualizando dashboard...");
+                    if (window.dashboard) {
+                        window.dashboard.loadAllData();
+                    } else {
+                        console.error("❌ dashboard no está disponible");
+                    }
+                }, 1500);
+            } else {
+                console.error("❌ Error del servidor:", data.error);
+                this.showError(data.error || "Error desconocido del servidor");
+            }
+            
+        } catch (error) {
+            this.hideLoading();
+            console.error("💥 Error de conexión:", error);
+            this.showError(`Error de conexión: ${error.message}`);
+        }
     }
-}
     
     showSuccess(data, expression) {
+        console.log("📊 Mostrando resultado exitoso");
+        
         document.getElementById('resultText').textContent = 
             `${expression} = ${data.result}`;
         document.getElementById('explanationText').textContent = 
-            data.ai_explanation;
+            data.ai_explanation || "Explicación no disponible";
         document.getElementById('locationText').textContent = 
-            `Desde: ${data.city}, ${data.country} (IP: ${data.ip})`;
+            `Desde: ${data.city || 'Desconocida'}, ${data.country || 'Desconocido'} (IP: ${data.ip || 'N/A'})`;
         
         this.resultDiv.style.display = 'block';
         
@@ -115,28 +150,34 @@ class CalculatorApp {
         }, 10);
     }
     
-showError(message) {
-    document.getElementById('errorText').textContent = message;
-    this.errorDiv.style.display = 'block';
-    
-    // Efecto de vibración en el input
-    const input = document.getElementById('expression');
-    input.style.animation = 'shake 0.5s ease';
-    setTimeout(() => {
-        input.style.animation = '';
-    }, 500);
-    
-    // Auto-ocultar después de 5 segundos
-    setTimeout(() => {
-        this.hideAllMessages();
-    }, 5000);
-}
+    showError(message) {
+        console.error("❌ Mostrando error:", message);
+        
+        document.getElementById('errorText').textContent = message;
+        this.errorDiv.style.display = 'block';
+        
+        // Efecto de vibración en el input
+        const input = document.getElementById('expression');
+        if (input) {
+            input.style.animation = 'shake 0.5s ease';
+            setTimeout(() => {
+                input.style.animation = '';
+            }, 500);
+        }
+        
+        // Auto-ocultar después de 5 segundos
+        setTimeout(() => {
+            this.hideAllMessages();
+        }, 5000);
+    }
     
     showLoading() {
+        console.log("⏳ Mostrando loading...");
         this.loadingDiv.style.display = 'block';
     }
     
     hideLoading() {
+        console.log("✅ Ocultando loading");
         this.loadingDiv.style.display = 'none';
     }
     
@@ -149,8 +190,10 @@ showError(message) {
 
 class Dashboard {
     constructor() {
+        console.log("🔄 Inicializando Dashboard...");
         this.isLoading = false;
         this.init();
+        console.log("✅ Dashboard inicializado correctamente");
     }
 
     init() {
@@ -158,6 +201,7 @@ class Dashboard {
         // Actualizar cada 30 segundos
         setInterval(() => {
             if (!this.isLoading) {
+                console.log("🔄 Actualización automática del dashboard");
                 this.loadAllData();
             }
         }, 30000);
@@ -165,7 +209,7 @@ class Dashboard {
 
     async fetchAPI(endpoint) {
         try {
-            console.log(`🔄 Fetching: ${API_BASE}${endpoint}`);
+            console.log(`🌐 Fetching: ${API_BASE}${endpoint}`);
             const response = await fetch(`${API_BASE}${endpoint}`);
             
             if (!response.ok) {
@@ -181,7 +225,10 @@ class Dashboard {
     }
 
     async loadAllData() {
-        if (this.isLoading) return;
+        if (this.isLoading) {
+            console.log("⏳ Dashboard ya está cargando, omitiendo...");
+            return;
+        }
         
         this.isLoading = true;
         console.log("🔄 Cargando todos los datos del dashboard...");
@@ -192,23 +239,23 @@ class Dashboard {
                 this.loadLatestOperation(),
                 this.loadRecentOperations()
             ]);
+            console.log("✅ Todos los datos del dashboard cargados");
+        } catch (error) {
+            console.error("❌ Error cargando datos del dashboard:", error);
         } finally {
             this.isLoading = false;
         }
     }
 
-
-    async loadAllData() {
-        await Promise.all([
-            this.loadStats(),
-            this.loadLatestOperation(),
-            this.loadRecentOperations()
-        ]);
-    }
-
     async loadStats() {
+        console.log("📊 Cargando estadísticas...");
         const data = await this.fetchAPI('/api/stats');
         const statsContent = document.getElementById('statsContent');
+        
+        if (!statsContent) {
+            console.error("❌ No se encuentra statsContent en el DOM");
+            return;
+        }
         
         if (data && data.success) {
             const stats = data.stats;
@@ -230,14 +277,22 @@ class Dashboard {
                     </div>
                 </div>
             `;
+            console.log("✅ Estadísticas cargadas correctamente");
         } else {
             statsContent.innerHTML = '<div class="text-center text-muted">Error cargando estadísticas</div>';
+            console.error("❌ Error cargando estadísticas");
         }
     }
 
     async loadLatestOperation() {
+        console.log("⭐ Cargando última operación...");
         const data = await this.fetchAPI('/api/operations/latest');
         const latestOperation = document.getElementById('latestOperation');
+        
+        if (!latestOperation) {
+            console.error("❌ No se encuentra latestOperation en el DOM");
+            return;
+        }
         
         if (data && data.success && data.operation) {
             const op = data.operation;
@@ -264,6 +319,7 @@ class Dashboard {
                     </div>
                 </div>
             `;
+            console.log("✅ Última operación cargada correctamente");
         } else {
             latestOperation.innerHTML = `
                 <div class="empty-state">
@@ -271,16 +327,23 @@ class Dashboard {
                     <p>No hay operaciones recientes</p>
                 </div>
             `;
+            console.log("ℹ️ No hay operaciones recientes");
         }
     }
 
     async loadRecentOperations() {
+        console.log("📋 Cargando operaciones recientes...");
         const data = await this.fetchAPI('/api/operations/recent');
         const recentOperations = document.getElementById('recentOperations');
         
-        if (data && data.success && data.operations.length > 0) {
+        if (!recentOperations) {
+            console.error("❌ No se encuentra recentOperations en el DOM");
+            return;
+        }
+        
+        if (data && data.success && data.operations && data.operations.length > 0) {
             let html = '';
-            data.operations.forEach(op => {
+            data.operations.forEach((op, index) => {
                 const fecha = new Date(op.fecha_hora);
                 html += `
                     <div class="operation-item">
@@ -298,6 +361,7 @@ class Dashboard {
                 `;
             });
             recentOperations.innerHTML = html;
+            console.log(`✅ ${data.operations.length} operaciones recientes cargadas`);
         } else {
             recentOperations.innerHTML = `
                 <div class="empty-state">
@@ -306,15 +370,44 @@ class Dashboard {
                     <small>Realiza tu primer cálculo para verlo aquí</small>
                 </div>
             `;
+            console.log("ℹ️ No hay operaciones recientes para mostrar");
         }
     }
 }
 
+// DIAGNÓSTICO DEL DOM
+console.log("🔍 Verificando elementos del DOM...");
+console.log("   calculatorForm:", !!document.getElementById('calculatorForm'));
+console.log("   expression:", !!document.getElementById('expression'));
+console.log("   result:", !!document.getElementById('result'));
+console.log("   error:", !!document.getElementById('error'));
+console.log("   loading:", !!document.getElementById('loading'));
+console.log("   statsContent:", !!document.getElementById('statsContent'));
+console.log("   latestOperation:", !!document.getElementById('latestOperation'));
+console.log("   recentOperations:", !!document.getElementById('recentOperations'));
+
 // Inicializar ambas aplicaciones cuando el DOM esté listo
 let dashboard;
+let calculatorApp;
+
 document.addEventListener('DOMContentLoaded', () => {
-    new CalculatorApp();
-    dashboard = new Dashboard();
+    console.log("🚀 DOM completamente cargado - Inicializando aplicaciones...");
+    
+    try {
+        calculatorApp = new CalculatorApp();
+        window.calculatorApp = calculatorApp;
+    } catch (error) {
+        console.error("💥 Error crítico inicializando CalculatorApp:", error);
+    }
+    
+    try {
+        dashboard = new Dashboard();
+        window.dashboard = dashboard;
+    } catch (error) {
+        console.error("💥 Error crítico inicializando Dashboard:", error);
+    }
+    
+    console.log("🎉 Aplicaciones inicializadas");
 });
 
 // Agregar animación de shake
@@ -328,6 +421,17 @@ style.textContent = `
     
     .form-control.focus {
         transform: scale(1.02);
+    }
+    
+    @keyframes slideInUp {
+        from {
+            opacity: 0;
+            transform: translateY(20px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
     }
 `;
 document.head.appendChild(style);
