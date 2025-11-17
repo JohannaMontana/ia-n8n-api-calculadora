@@ -1,0 +1,574 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Calculadora Inteligente</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⚡</text></svg>">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --rosa-principal: #ff60c7;
+            --rosa-claro: #ff8fea;
+            --rosa-suave: #ffccfa;
+            --negro: #1a1a1a;
+            --gris-oscuro: #2d2d2d;
+            --blanco: #ffffff;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Poppins', sans-serif;
+            background: linear-gradient(135deg, var(--negro) 0%, var(--gris-oscuro) 100%);
+            color: var(--blanco);
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+        
+        .navbar-brand {
+            font-weight: 700;
+            font-size: 1.5rem;
+            background: linear-gradient(45deg, var(--rosa-principal), var(--rosa-claro));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        
+        .calculator-container {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 20px;
+            padding: 2rem;
+            margin: 2rem auto;
+            max-width: 500px;
+            box-shadow: 0 20px 40px rgba(255, 77, 109, 0.1);
+            transform: translateY(0);
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .calculator-container::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 77, 109, 0.1), transparent);
+            transition: left 0.6s ease;
+        }
+        
+        .calculator-container:hover::before {
+            left: 100%;
+        }
+        
+        .calculator-container:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 25px 50px rgba(255, 77, 109, 0.2);
+        }
+        
+        .calculator-title {
+            text-align: center;
+            margin-bottom: 2rem;
+            font-weight: 600;
+            background: linear-gradient(45deg, var(--rosa-principal), var(--rosa-claro));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        
+        .form-control {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            color: var(--blanco);
+            border-radius: 12px;
+            padding: 1rem;
+            font-size: 1.1rem;
+            transition: all 0.3s ease;
+        }
+        
+        .form-control:focus {
+            background: rgba(255, 255, 255, 0.15);
+            border-color: var(--rosa-principal);
+            box-shadow: 0 0 0 0.2rem rgba(255, 77, 109, 0.25);
+            color: var(--blanco);
+        }
+        
+        .form-control::placeholder {
+            color: rgba(255, 255, 255, 0.6);
+        }
+        
+        .btn-primary {
+            background: linear-gradient(45deg, var(--rosa-principal), var(--rosa-claro));
+            border: none;
+            border-radius: 12px;
+            padding: 1rem 2rem;
+            font-weight: 600;
+            font-size: 1.1rem;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(255, 77, 109, 0.3);
+        }
+        
+        .btn-primary:active {
+            transform: translateY(0);
+        }
+        
+        .result-box {
+            background: rgba(255, 255, 255, 0.08);
+            border-radius: 15px;
+            padding: 1.5rem;
+            margin-top: 1.5rem;
+            border-left: 4px solid var(--rosa-principal);
+            animation: slideInUp 0.5s ease;
+        }
+        
+        .ai-explanation {
+            background: rgba(255, 77, 109, 0.1);
+            border-radius: 12px;
+            padding: 1rem;
+            margin-top: 1rem;
+            border-left: 3px solid var(--rosa-claro);
+            font-style: italic;
+        }
+        
+        .location-info {
+            font-size: 0.9rem;
+            opacity: 0.8;
+            margin-top: 0.5rem;
+        }
+        
+        .floating-icon {
+            position: absolute;
+            font-size: 2rem;
+            opacity: 0.1;
+            animation: float 3s ease-in-out infinite;
+        }
+        
+        .icon-1 { top: 10%; left: 10%; animation-delay: 0s; }
+        .icon-2 { top: 20%; right: 10%; animation-delay: 1s; }
+        .icon-3 { bottom: 20%; left: 15%; animation-delay: 2s; }
+        .icon-4 { bottom: 10%; right: 20%; animation-delay: 1.5s; }
+        
+        @keyframes float {
+            0%, 100% { transform: translateY(0px) rotate(0deg); }
+            50% { transform: translateY(-20px) rotate(180deg); }
+        }
+        
+        @keyframes slideInUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .pulse {
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+        
+        .stats-box {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 15px;
+            padding: 1rem;
+            margin-top: 1rem;
+            text-align: center;
+        }
+        
+        .loading-spinner {
+            display: none;
+            text-align: center;
+            margin: 1rem 0;
+        }
+        
+        .spinner-border {
+            color: var(--rosa-principal);
+        }
+
+        /* NUEVOS ESTILOS PARA EJEMPLOS */
+        .examples-btn {
+            background: rgba(255, 96, 199, 0.1);
+            border: 1px solid rgba(255, 96, 199, 0.3);
+            color: var(--rosa-claro);
+            border-radius: 10px;
+            padding: 0.75rem 1rem;
+            font-size: 0.9rem;
+            transition: all 0.3s ease;
+            margin-top: 1rem;
+            width: 100%;
+        }
+
+        .examples-btn:hover {
+            background: rgba(255, 96, 199, 0.2);
+            border-color: var(--rosa-principal);
+            transform: translateY(-2px);
+        }
+
+        .example-category {
+            margin-bottom: 1.5rem;
+        }
+
+        .category-title {
+            color: var(--rosa-claro);
+            font-size: 0.9rem;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+            padding-bottom: 0.25rem;
+            border-bottom: 1px solid rgba(255, 96, 199, 0.2);
+        }
+
+        .example-item {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            padding: 0.75rem;
+            margin-bottom: 0.5rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .example-item:hover {
+            background: rgba(255, 96, 199, 0.1);
+            border-color: var(--rosa-principal);
+            transform: translateX(5px);
+        }
+
+        .example-item code {
+            background: rgba(255, 96, 199, 0.2);
+            color: var(--rosa-claro);
+            padding: 0.2rem 0.4rem;
+            border-radius: 4px;
+            font-size: 0.8rem;
+            display: block;
+            margin-bottom: 0.25rem;
+        }
+
+        .example-item small {
+            color: rgba(255, 255, 255, 0.6);
+            font-size: 0.75rem;
+        }
+
+        .modal-content {
+            background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%);
+            border: 1px solid rgba(255, 96, 199, 0.3);
+            border-radius: 15px;
+            backdrop-filter: blur(20px);
+        }
+
+        .modal-header {
+            border-bottom: 1px solid rgba(255, 96, 199, 0.2);
+        }
+
+        .modal-footer {
+            border-top: 1px solid rgba(255, 96, 199, 0.2);
+        }
+
+        .floating-examples-btn {
+            position: fixed;
+            bottom: 2rem;
+            right: 2rem;
+            background: linear-gradient(45deg, var(--rosa-principal), var(--rosa-claro));
+            border: none;
+            border-radius: 50%;
+            width: 60px;
+            height: 60px;
+            color: white;
+            font-size: 1.5rem;
+            box-shadow: 0 10px 25px rgba(255, 96, 199, 0.3);
+            transition: all 0.3s ease;
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .floating-examples-btn:hover {
+            transform: scale(1.1) rotate(10deg);
+            box-shadow: 0 15px 30px rgba(255, 96, 199, 0.4);
+        }
+    </style>
+</head>
+<body>
+    <!-- Navbar -->
+    <nav class="navbar navbar-expand-lg navbar-dark">
+        <div class="container">
+            <a class="navbar-brand" href="#">
+                <i class="fas fa-calculator me-2"></i>
+                Calculadora IA - n8n
+            </a>
+        </div>
+    </nav>
+
+    <!-- Main Container -->
+    <div class="container">
+        <div class="calculator-container">
+            <!-- Floating Icons -->
+            <i class="fas fa-plus floating-icon icon-1"></i>
+            <i class="fas fa-minus floating-icon icon-2"></i>
+            <i class="fas fa-times floating-icon icon-3"></i>
+            <i class="fas fa-divide floating-icon icon-4"></i>
+            
+            <h2 class="calculator-title">
+                <i class="fas fa-robot me-2"></i>
+                Calculadora Inteligente
+            </h2>
+            
+            <form id="calculatorForm">
+                <div class="mb-3">
+                    <label for="expression" class="form-label">
+                        <i class="fas fa-keyboard me-2"></i>
+                        Expresión Matemática:
+                    </label>
+                    <input type="text" class="form-control" id="expression" 
+                           placeholder="Ej: integral de x^2 dx, resolver 2x+5=13, (5+3)*2" required>
+                    <div class="form-text text-light opacity-75">
+                        <i class="fas fa-info-circle me-1"></i>
+                        Desde aritmética básica hasta cálculo avanzado
+                    </div>
+                </div>
+                
+                <button type="submit" class="btn btn-primary w-100 pulse">
+                    <i class="fas fa-bolt me-2"></i>
+                    Calcular con IA
+                </button>
+            </form>
+
+            <!-- Botón para ver ejemplos -->
+            <button type="button" class="examples-btn" data-bs-toggle="modal" data-bs-target="#examplesModal">
+                <i class="fas fa-lightbulb me-2"></i>
+                Ver Ejemplos de Operaciones Soportadas
+            </button>
+            
+            <!-- Loading Spinner -->
+            <div id="loading" class="loading-spinner">
+                <div class="spinner-border" role="status">
+                    <span class="visually-hidden">Calculando...</span>
+                </div>
+                <p class="mt-2 mb-0">Consultando a la IA...</p>
+            </div>
+            
+            <!-- Result Section -->
+            <div id="result" class="result-box" style="display: none;">
+                <h5 class="mb-3">
+                    <i class="fas fa-star me-2" style="color: var(--rosa-principal);"></i>
+                    Resultado:
+                </h5>
+                <p id="resultText" class="h4 mb-3"></p>
+                
+                <!-- AI Explanation -->
+                <div id="aiExplanation" class="ai-explanation">
+                    <i class="fas fa-robot me-2"></i>
+                    <span id="explanationText"></span>
+                </div>
+                
+                <!-- Location Info -->
+                <div id="locationInfo" class="location-info">
+                    <i class="fas fa-map-marker-alt me-1"></i>
+                    <span id="locationText"></span>
+                </div>
+            </div>
+            
+            <!-- Error Message -->
+            <div id="error" class="alert alert-danger mt-3" style="display: none; border-radius: 12px;">
+                <i class="fas fa-exclamation-triangle me-2"></i>
+                <span id="errorText"></span>
+            </div>
+            
+            <!-- Stats -->
+            <div class="stats-box">
+                <small class="text-light opacity-75">
+                    <i class="fas fa-shield-alt me-1"></i>
+                    Johanna Morales Mateos 
+                </small>
+            </div>
+        </div>
+    </div>
+
+    <!-- Examples Modal -->
+    <div class="modal fade" id="examplesModal" tabindex="-1" aria-labelledby="examplesModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="examplesModalLabel" style="background: linear-gradient(45deg, var(--rosa-principal), var(--rosa-claro)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;">
+                        <i class="fas fa-lightbulb me-2"></i>
+                        Ejemplos de Operaciones Soportadas
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row">
+                        <!-- Aritmética -->
+                        <div class="col-md-6 mb-4">
+                            <div class="example-category">
+                                <h6 class="category-title">
+                                    <i class="fas fa-calculator me-2"></i>
+                                    Aritmética Básica
+                                </h6>
+                                <div class="example-item" onclick="fillExample('2+3*4')">
+                                    <code>2+3*4</code>
+                                    <small>Operaciones combinadas</small>
+                                </div>
+                                <div class="example-item" onclick="fillExample('(5+3)/2')">
+                                    <code>(5+3)/2</code>
+                                    <small>Con paréntesis</small>
+                                </div>
+                                <div class="example-item" onclick="fillExample('15% de 200')">
+                                    <code>15% de 200</code>
+                                    <small>Porcentajes</small>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Álgebra -->
+                        <div class="col-md-6 mb-4">
+                            <div class="example-category">
+                                <h6 class="category-title">
+                                    <i class="fas fa-square-root-alt me-2"></i>
+                                    Álgebra
+                                </h6>
+                                <div class="example-item" onclick="fillExample('(x+2)^2')">
+                                    <code>(x+2)^2</code>
+                                    <small>Expansión binomial</small>
+                                </div>
+                                <div class="example-item" onclick="fillExample('factorizar x^2 - 4')">
+                                    <code>factorizar x^2 - 4</code>
+                                    <small>Factorización</small>
+                                </div>
+                                <div class="example-item" onclick="fillExample('simplificar (x^2-1)/(x-1)')">
+                                    <code>simplificar (x^2-1)/(x-1)</code>
+                                    <small>Simplificación</small>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Cálculo -->
+                        <div class="col-md-6 mb-4">
+                            <div class="example-category">
+                                <h6 class="category-title">
+                                    <i class="fas fa-infinity me-2"></i>
+                                    Cálculo
+                                </h6>
+                                <div class="example-item" onclick="fillExample('derivada de x^2')">
+                                    <code>derivada de x^2</code>
+                                    <small>Derivadas</small>
+                                </div>
+                                <div class="example-item" onclick="fillExample('integral de 2x dx')">
+                                    <code>integral de 2x dx</code>
+                                    <small>Integrales</small>
+                                </div>
+                                <div class="example-item" onclick="fillExample('límite de 1/x cuando x->∞')">
+                                    <code>límite de 1/x cuando x->∞</code>
+                                    <small>Límites</small>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Trigonometría -->
+                        <div class="col-md-6 mb-4">
+                            <div class="example-category">
+                                <h6 class="category-title">
+                                    <i class="fas fa-drafting-compass me-2"></i>
+                                    Trigonometría
+                                </h6>
+                                <div class="example-item" onclick="fillExample('sen(π/2)')">
+                                    <code>sen(π/2)</code>
+                                    <small>Funciones trigonométricas</small>
+                                </div>
+                                <div class="example-item" onclick="fillExample('cos(45°)')">
+                                    <code>cos(45°)</code>
+                                    <small>Con grados</small>
+                                </div>
+                                <div class="example-item" onclick="fillExample('tan(π/4)')">
+                                    <code>tan(π/4)</code>
+                                    <small>Tangente</small>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Ecuaciones -->
+                        <div class="col-md-6 mb-4">
+                            <div class="example-category">
+                                <h6 class="category-title">
+                                    <i class="fas fa-equals me-2"></i>
+                                    Ecuaciones
+                                </h6>
+                                <div class="example-item" onclick="fillExample('resolver 2x + 5 = 13')">
+                                    <code>resolver 2x + 5 = 13</code>
+                                    <small>Ecuaciones lineales</small>
+                                </div>
+                                <div class="example-item" onclick="fillExample('x^2 - 5x + 6 = 0')">
+                                    <code>x^2 - 5x + 6 = 0</code>
+                                    <small>Ecuaciones cuadráticas</small>
+                                </div>
+                                <div class="example-item" onclick="fillExample('sistema: x+y=5, x-y=1')">
+                                    <code>sistema: x+y=5, x-y=1</code>
+                                    <small>Sistemas de ecuaciones</small>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Estadística -->
+                        <div class="col-md-6 mb-4">
+                            <div class="example-category">
+                                <h6 class="category-title">
+                                    <i class="fas fa-chart-bar me-2"></i>
+                                    Estadística
+                                </h6>
+                                <div class="example-item" onclick="fillExample('media de [1,2,3,4,5]')">
+                                    <code>media de [1,2,3,4,5]</code>
+                                    <small>Medidas de tendencia</small>
+                                </div>
+                                <div class="example-item" onclick="fillExample('desviación estándar de [2,4,6,8]')">
+                                    <code>desviación estándar de [2,4,6,8]</code>
+                                    <small>Dispersión</small>
+                                </div>
+                                <div class="example-item" onclick="fillExample('mediana de [3,1,4,2,5]')">
+                                    <code>mediana de [3,1,4,2,5]</code>
+                                    <small>Mediana</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <small class="text-light opacity-75">
+                        <i class="fas fa-robot me-1"></i>
+                        ¡Puedes hacer preguntas en lenguaje natural!
+                    </small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Botón flotante para ejemplos -->
+    <button type="button" class="floating-examples-btn" data-bs-toggle="modal" data-bs-target="#examplesModal" title="Ver ejemplos">
+        <i class="fas fa-magic"></i>
+    </button>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="js/script.js"></script>
+</body>
+</html>
