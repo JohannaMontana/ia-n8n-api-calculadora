@@ -52,43 +52,51 @@ class CalculatorApp {
         });
     }
     
-    async handleSubmit(e) {
-        e.preventDefault();
+   async handleSubmit(e) {
+    e.preventDefault();
+    
+    const expression = document.getElementById('expression').value.trim();
+    
+    // Ocultar mensajes anteriores
+    this.hideAllMessages();
+    
+    // Mostrar loading
+    this.showLoading();
+    
+    try {
+        console.log("Enviando expresión:", expression);
+        const response = await fetch(API_URL, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ expression: expression })
+        });
         
-        const expression = document.getElementById('expression').value.trim();
+        console.log("Response status:", response.status);
+        const data = await response.json();
+        console.log("Datos recibidos:", data);
         
-        // Ocultar mensajes anteriores
-        this.hideAllMessages();
+        this.hideLoading();
         
-        // Mostrar loading
-        this.showLoading();
-        
-        try {
-            const response = await fetch(API_URL, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ expression: expression })
-            });
-            
-            const data = await response.json();
-            
-            this.hideLoading();
-            
-            if (data.success) {
-                this.showSuccess(data, expression);
-                // Actualizar el dashboard después de un cálculo exitoso
-                setTimeout(() => dashboard.loadAllData(), 1000);
-            } else {
-                this.showError(data.error);
-            }
-            
-        } catch (error) {
-            this.hideLoading();
-            this.showError(`Error de conexión: ${error.message}`);
+        if (data.success) {
+            this.showSuccess(data, expression);
+            // Actualizar el dashboard después de un cálculo exitoso
+            setTimeout(() => {
+                console.log("Actualizando dashboard...");
+                dashboard.loadAllData();
+            }, 1000);
+        } else {
+            console.error("Error del servidor:", data.error);
+            this.showError(data.error || "Error desconocido");
         }
+        
+    } catch (error) {
+        this.hideLoading();
+        console.error("Error de conexión:", error);
+        this.showError(`Error de conexión: ${error.message}`);
     }
+}
     
     showSuccess(data, expression) {
         document.getElementById('resultText').textContent = 
@@ -107,17 +115,22 @@ class CalculatorApp {
         }, 10);
     }
     
-    showError(message) {
-        document.getElementById('errorText').textContent = message;
-        this.errorDiv.style.display = 'block';
-        
-        // Efecto de vibración en el input
-        const input = document.getElementById('expression');
-        input.style.animation = 'shake 0.5s ease';
-        setTimeout(() => {
-            input.style.animation = '';
-        }, 500);
-    }
+showError(message) {
+    document.getElementById('errorText').textContent = message;
+    this.errorDiv.style.display = 'block';
+    
+    // Efecto de vibración en el input
+    const input = document.getElementById('expression');
+    input.style.animation = 'shake 0.5s ease';
+    setTimeout(() => {
+        input.style.animation = '';
+    }, 500);
+    
+    // Auto-ocultar después de 5 segundos
+    setTimeout(() => {
+        this.hideAllMessages();
+    }, 5000);
+}
     
     showLoading() {
         this.loadingDiv.style.display = 'block';
@@ -136,25 +149,54 @@ class CalculatorApp {
 
 class Dashboard {
     constructor() {
+        this.isLoading = false;
         this.init();
     }
 
     init() {
         this.loadAllData();
         // Actualizar cada 30 segundos
-        setInterval(() => this.loadAllData(), 30000);
+        setInterval(() => {
+            if (!this.isLoading) {
+                this.loadAllData();
+            }
+        }, 30000);
     }
 
     async fetchAPI(endpoint) {
         try {
+            console.log(`🔄 Fetching: ${API_BASE}${endpoint}`);
             const response = await fetch(`${API_BASE}${endpoint}`);
-            if (!response.ok) throw new Error('Error en la API');
-            return await response.json();
+            
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            const data = await response.json();
+            console.log(`✅ Response from ${endpoint}:`, data);
+            return data;
         } catch (error) {
-            console.error(`Error fetching ${endpoint}:`, error);
+            console.error(`❌ Error fetching ${endpoint}:`, error);
             return null;
         }
     }
+
+    async loadAllData() {
+        if (this.isLoading) return;
+        
+        this.isLoading = true;
+        console.log("🔄 Cargando todos los datos del dashboard...");
+        
+        try {
+            await Promise.allSettled([
+                this.loadStats(),
+                this.loadLatestOperation(),
+                this.loadRecentOperations()
+            ]);
+        } finally {
+            this.isLoading = false;
+        }
+    }
+
 
     async loadAllData() {
         await Promise.all([
