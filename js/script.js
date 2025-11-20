@@ -2,7 +2,7 @@
 console.log("✅ script.js cargado correctamente");
 
 // CONFIGURACIÓN
-const API_URL = 'https://hannamontana.app.n8n.cloud/webhook/calculadora-n8n';
+const API_URL = 'https://telcel90.app.n8n.cloud/webhook/calculadora-n8n';
 const API_BASE = 'http://100.30.101.150:5000';
 
 console.log("🔧 Configuración API:");
